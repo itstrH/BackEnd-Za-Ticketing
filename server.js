@@ -1,14 +1,14 @@
-const express = require('express');
-const mysql = require('mysql2');
-const cors = require('cors');
-const { v4: uuidv4 } = require('uuid'); // import UUID
-const cookieParser = require('cookie-parser');
+const express = require('express'); //npm install
+const mysql = require('mysql2'); //npm install
+const cors = require('cors'); //npm install
+const { v4: uuidv4 } = require('uuid'); //npm install
+const cookieParser = require('cookie-parser'); //npm install
 
 const app = express();
 const port = 3001;
 
 const corsOptions = {
-  origin: 'http://localhost:2999', // Địa chỉ frontend
+  origin: 'http://localhost:2999', 
   methods: 'GET,POST,PUT,DELETE',
   credentials: true, // Cho phép gửi cookie cùng với yêu cầu
 };
@@ -186,7 +186,7 @@ app.post('/api/bookings/:bookingId/cancel', (req, res) => {
 });
 
 
-// Cập nhật trạng thái hủy vé
+// api update state hủy vé
 app.put("/api/bookings/cancel/:bookingId", (req, res) => {
   const { bookingId } = req.params;
   db.query(
@@ -221,7 +221,7 @@ app.post("/api/events", (req, res) => {
     return res.status(400).json({ error: "Thiếu thông tin bắt buộc" });
   }
 
-  // Tạo event_id tự động bằng UUID
+  // create event_id tự động bằng UUID
   const event_id = uuidv4();
 
   const insertEventQuery = `
@@ -244,15 +244,15 @@ app.post("/api/events", (req, res) => {
       return res.status(500).json({ error: "Không thể tạo sự kiện" });
     }
 
-    // Chèn vé vào bảng tickets, tự động tạo ticket_id bằng UUID
+    // chèn vé vào bảng tickets
     const insertTicketsQuery = `
       INSERT INTO tickets (ticket_id, event_id, ticket_type, price_vnd, quantity)
       VALUES ?
     `;
 
     const ticketValues = tickets.map(ticket => [
-      uuidv4(),  // Tạo ticket_id tự động bằng UUID
-      event_id,  // Liên kết với event_id mới tạo
+      uuidv4(),  
+      event_id, 
       ticket.ticket_type,
       ticket.price_vnd,
       ticket.quantity
@@ -273,12 +273,10 @@ app.post("/api/events", (req, res) => {
 app.post('/api/register', (req, res) => {
   const { full_name, phone, email, password, gender, dob } = req.body;
 
-  // Kiểm tra nếu thiếu thông tin
   if (!email || !password || !full_name) {
     return res.status(400).json({ error: "Thiếu thông tin" });
   }
 
-  // Truy vấn cơ sở dữ liệu để thêm người dùng
   db.query(
     'INSERT INTO users (full_name, phone, email, password, gender, dob) VALUES (?, ?, ?, ?, ?, ?)',
     [full_name, phone, email, password, gender, dob],
@@ -348,4 +346,4 @@ app.post('/api/logout', (req, res) => {
 
 
 
-// json api event: http://localhost:3001/api/events - muon tim api nao thi doi duoi
+// json api: http://localhost:3001/api/(tên bảng) 
