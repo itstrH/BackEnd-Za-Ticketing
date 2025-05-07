@@ -1,16 +1,16 @@
-const express = require('express'); //npm install
-const mysql = require('mysql2'); //npm install
-const cors = require('cors'); //npm install
-const { v4: uuidv4 } = require('uuid'); //npm install
-const cookieParser = require('cookie-parser'); //npm install
+const express = require('express');
+const mysql = require('mysql2');
+const cors = require('cors');
+const { v4: uuidv4 } = require('uuid'); 
+const cookieParser = require('cookie-parser');
 
 const app = express();
 const port = 3001;
 
 const corsOptions = {
-  origin: 'http://localhost:2999', 
+  origin: true, 
   methods: 'GET,POST,PUT,DELETE',
-  credentials: true, // Cho phép gửi cookie cùng với yêu cầu
+  credentials: true, 
 };
 
 app.use(cors(corsOptions));
@@ -118,16 +118,32 @@ app.get('/api/tickets', (req, res) => {
 // api tạo booking mới
 app.post("/api/bookings", (req, res) => {
   const { ticket_id, quantity, booking_date } = req.body;
+
   if (!ticket_id || !quantity || !booking_date) {
     return res.status(400).json({ error: "Thiếu thông tin đặt vé" });
+  }
+
+  // Lấy user_id từ cookie
+  const authCookie = req.cookies.auth;
+  if (!authCookie) {
+    return res.status(401).json({ error: "Chưa đăng nhập" });
+  }
+
+  let userId;
+  try {
+    const userData = JSON.parse(authCookie);
+    userId = userData.user_id;
+  } catch (err) {
+    return res.status(400).json({ error: "Lỗi cookie" });
   }
 
   const booking_id = `booking_${Date.now()}`;
   const status = 'confirmed'; 
 
+  // Lưu booking với user_id
   db.query(
-    "INSERT INTO bookings (booking_id, ticket_id, booking_date, quantity, status) VALUES (?, ?, ?, ?, ?)",
-    [booking_id, ticket_id, booking_date, quantity, status],
+    "INSERT INTO bookings (booking_id, ticket_id, booking_date, quantity, status, user_id) VALUES (?, ?, ?, ?, ?, ?)",
+    [booking_id, ticket_id, booking_date, quantity, status, userId],
     (err) => {
       if (err) {
         console.error("Lỗi khi thêm booking:", err);
@@ -139,8 +155,22 @@ app.post("/api/bookings", (req, res) => {
 });
 
 
-// api lấy tất cả vé đã đặt
+// api lấy tất cả vé đã đặt của người dùng
 app.get("/api/bookings", (req, res) => {
+  const authCookie = req.cookies.auth;
+  if (!authCookie) {
+    return res.status(401).json({ error: "Chưa đăng nhập" });
+  }
+
+  let userId;
+  try {
+    const userData = JSON.parse(authCookie);
+    userId = userData.user_id;
+  } catch (err) {
+    return res.status(400).json({ error: "Lỗi cookie" });
+  }
+
+  // Truy vấn vé đã đặt của người dùng
   const sql = `
     SELECT 
       b.booking_id, 
@@ -153,10 +183,11 @@ app.get("/api/bookings", (req, res) => {
     FROM bookings b
     JOIN tickets t ON b.ticket_id = t.ticket_id
     JOIN events e ON t.event_id = e.event_id
+    WHERE b.user_id = ?
     ORDER BY b.booking_date DESC
   `;
 
-  db.query(sql, (err, results) => {
+  db.query(sql, [userId], (err, results) => {
     if (err) {
       console.error("[API /api/bookings] Lỗi truy vấn:", err.message);
       return res.status(500).json({ error: "Không thể lấy danh sách vé" });
@@ -186,7 +217,7 @@ app.post('/api/bookings/:bookingId/cancel', (req, res) => {
 });
 
 
-// api update state hủy vé
+// Cập nhật trạng thái hủy vé
 app.put("/api/bookings/cancel/:bookingId", (req, res) => {
   const { bookingId } = req.params;
   db.query(
@@ -221,7 +252,7 @@ app.post("/api/events", (req, res) => {
     return res.status(400).json({ error: "Thiếu thông tin bắt buộc" });
   }
 
-  // create event_id tự động bằng UUID
+  // Tạo event_id tự động bằng UUID
   const event_id = uuidv4();
 
   const insertEventQuery = `
@@ -244,15 +275,15 @@ app.post("/api/events", (req, res) => {
       return res.status(500).json({ error: "Không thể tạo sự kiện" });
     }
 
-    // chèn vé vào bảng tickets
+    // Chèn vé vào bảng tickets, tự động tạo ticket_id bằng UUID
     const insertTicketsQuery = `
       INSERT INTO tickets (ticket_id, event_id, ticket_type, price_vnd, quantity)
       VALUES ?
     `;
 
     const ticketValues = tickets.map(ticket => [
-      uuidv4(),  
-      event_id, 
+      uuidv4(),  // Tạo ticket_id tự động bằng UUID
+      event_id,  // Liên kết với event_id mới tạo
       ticket.ticket_type,
       ticket.price_vnd,
       ticket.quantity
@@ -273,10 +304,12 @@ app.post("/api/events", (req, res) => {
 app.post('/api/register', (req, res) => {
   const { full_name, phone, email, password, gender, dob } = req.body;
 
+  // Kiểm tra nếu thiếu thông tin
   if (!email || !password || !full_name) {
     return res.status(400).json({ error: "Thiếu thông tin" });
   }
 
+  // Truy vấn cơ sở dữ liệu để thêm người dùng
   db.query(
     'INSERT INTO users (full_name, phone, email, password, gender, dob) VALUES (?, ?, ?, ?, ?, ?)',
     [full_name, phone, email, password, gender, dob],
@@ -291,6 +324,8 @@ app.post('/api/register', (req, res) => {
 });
 
 
+
+
 /// api đăng nhập
 app.post('/api/login', (req, res) => {
   const { email, password } = req.body;
@@ -302,7 +337,7 @@ app.post('/api/login', (req, res) => {
 
     const user = results[0];
     const userInfo = {
-      user_id: user.user_id,
+      user_id: user.id,
       full_name: user.full_name,
       email: user.email,
       phone: user.phone,
@@ -310,10 +345,18 @@ app.post('/api/login', (req, res) => {
       gender: user.gender
     };
 
-    res.cookie('auth', JSON.stringify(userInfo), { httpOnly: true });
+    // Thiết lập cookie
+    res.cookie('auth', JSON.stringify(userInfo), { 
+      httpOnly: true, 
+      secure: false, 
+      sameSite: 'lax', 
+      maxAge: 1000 * 60 * 60 * 24
+    });
+
     res.json({ message: 'Đăng nhập thành công', user: userInfo });
   });
 });
+
 
 // API kiểm tra người dùng đã đăng nhập chưa
 app.get('/api/check-auth', (req, res) => {
@@ -335,7 +378,7 @@ app.get('/api/check-auth', (req, res) => {
 app.post('/api/logout', (req, res) => {
   res.clearCookie("auth", {
     httpOnly: true,
-    secure: false, // Đặt true nếu dùng HTTPS
+    secure: true, // Đặt true nếu dùng HTTPS
     sameSite: "lax",
   });
   res.json({ message: "Đăng xuất thành công" });
@@ -346,4 +389,4 @@ app.post('/api/logout', (req, res) => {
 
 
 
-// json api: http://localhost:3001/api/(tên bảng) 
+// json api event: http://localhost:3001/api/events - muon tim api nao thi doi duoi
