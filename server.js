@@ -302,17 +302,15 @@ app.post("/api/events", (req, res) => {
 
 // api đăng ký
 app.post('/api/register', (req, res) => {
-  const { full_name, phone, email, password, gender, dob } = req.body;
+  const { full_name, phone, email, password, gender, dob, role = 'user' } = req.body;
 
-  // Kiểm tra nếu thiếu thông tin
   if (!email || !password || !full_name) {
     return res.status(400).json({ error: "Thiếu thông tin" });
   }
 
-  // Truy vấn cơ sở dữ liệu để thêm người dùng
   db.query(
-    'INSERT INTO users (full_name, phone, email, password, gender, dob) VALUES (?, ?, ?, ?, ?, ?)',
-    [full_name, phone, email, password, gender, dob],
+    'INSERT INTO users (full_name, phone, email, password, gender, dob, role) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [full_name, phone, email, password, gender, dob, role],
     (err) => {
       if (err) {
         console.error('Lỗi đăng ký:', err);
@@ -322,6 +320,7 @@ app.post('/api/register', (req, res) => {
     }
   );
 });
+
 
 
 
@@ -342,20 +341,21 @@ app.post('/api/login', (req, res) => {
       email: user.email,
       phone: user.phone,
       dob: user.dob,
-      gender: user.gender
+      gender: user.gender,
+      role: user.role
     };
 
-    // Thiết lập cookie
-    res.cookie('auth', JSON.stringify(userInfo), { 
-      httpOnly: true, 
-      secure: false, 
-      sameSite: 'lax', 
+    res.cookie('auth', JSON.stringify(userInfo), {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
       maxAge: 1000 * 60 * 60 * 24
     });
 
     res.json({ message: 'Đăng nhập thành công', user: userInfo });
   });
 });
+
 
 
 // API kiểm tra người dùng đã đăng nhập chưa
