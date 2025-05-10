@@ -252,7 +252,7 @@ app.post("/api/events", (req, res) => {
     return res.status(400).json({ error: "Thiếu thông tin bắt buộc" });
   }
 
-  // Tạo event_id tự động bằng UUID
+  // tạo event_id tự động bằng UUID
   const event_id = uuidv4();
 
   const insertEventQuery = `
@@ -299,6 +299,10 @@ app.post("/api/events", (req, res) => {
     });
   });
 });
+
+
+
+
 
 // api đăng ký
 app.post('/api/register', (req, res) => {
