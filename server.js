@@ -33,7 +33,7 @@ db.connect(err => {
 });
 
 
-// api để get thông tin từ bảng events - cho ra event nào sắp diễn ra
+// api upcoming event
 app.get('/api/events', (req, res) => {
   db.query('SELECT * FROM events ORDER BY event_date ASC', (err, results) => {
     if (err) {
@@ -46,9 +46,9 @@ app.get('/api/events', (req, res) => {
 });
 
 
-// api lấy danh sách hot event
+// api hot event by ranking score
 app.get('/api/hot-events', (req, res) => {
-  db.query('SELECT * FROM events ORDER BY hot_level desc', (err, results) => {
+  db.query('SELECT * FROM events ORDER BY rank_score desc', (err, results) => {
     if (err) {
       console.error('Lỗi truy vấn:', err);
       res.status(500).json({ error: 'Lỗi server' });
@@ -140,7 +140,7 @@ app.post("/api/bookings", (req, res) => {
   const booking_id = `booking_${Date.now()}`;
   const status = 'confirmed'; 
 
-  // Lưu booking với user_id
+  // lưu booking với user_id
   db.query(
     "INSERT INTO bookings (booking_id, ticket_id, booking_date, quantity, status, user_id) VALUES (?, ?, ?, ?, ?, ?)",
     [booking_id, ticket_id, booking_date, quantity, status, userId],
@@ -217,7 +217,7 @@ app.post('/api/bookings/:bookingId/cancel', (req, res) => {
 });
 
 
-// Cập nhật trạng thái hủy vé
+// api cập nhật trạng thái hủy vé
 app.put("/api/bookings/cancel/:bookingId", (req, res) => {
   const { bookingId } = req.params;
   db.query(
@@ -244,7 +244,7 @@ app.post("/api/events", (req, res) => {
     event_location,
     event_description,
     banner_url,
-    hot_level,
+    rank_score,
     tickets
   } = req.body;
 
@@ -256,7 +256,7 @@ app.post("/api/events", (req, res) => {
   const event_id = uuidv4();
 
   const insertEventQuery = `
-    INSERT INTO events (event_id, event_name, event_date, event_time, event_location, event_description, banner_url, hot_level)
+    INSERT INTO events (event_id, event_name, event_date, event_time, event_location, event_description, banner_url, rank_score)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
@@ -268,7 +268,7 @@ app.post("/api/events", (req, res) => {
     event_location,
     event_description,
     banner_url,
-    hot_level
+    rank_score
   ], (err, result) => {
     if (err) {
       console.error("Lỗi khi thêm sự kiện:", err);
@@ -382,7 +382,7 @@ app.get('/api/check-auth', (req, res) => {
 app.post('/api/logout', (req, res) => {
   res.clearCookie("auth", {
     httpOnly: true,
-    secure: true, // Đặt true nếu dùng HTTPS
+    secure: true,
     sameSite: "lax",
   });
   res.json({ message: "Đăng xuất thành công" });
