@@ -275,15 +275,15 @@ app.post("/api/events", (req, res) => {
       return res.status(500).json({ error: "Không thể tạo sự kiện" });
     }
 
-    // Chèn vé vào bảng tickets, tự động tạo ticket_id bằng UUID
+    // insert vé vào tickets, tự động tạo ticket_id bằng UUID
     const insertTicketsQuery = `
       INSERT INTO tickets (ticket_id, event_id, ticket_type, price_vnd, quantity)
       VALUES ?
     `;
 
     const ticketValues = tickets.map(ticket => [
-      uuidv4(),  // Tạo ticket_id tự động bằng UUID
-      event_id,  // Liên kết với event_id mới tạo
+      uuidv4(),  // generate ticket_id tự động bằng UUID
+      event_id,  // link với event_id mới tạo
       ticket.ticket_type,
       ticket.price_vnd,
       ticket.quantity
