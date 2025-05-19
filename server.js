@@ -115,7 +115,7 @@ app.get('/api/tickets', (req, res) => {
 
 
 
-// api tạo booking mới
+// api mua vé  - tạo booking
 app.post("/api/bookings", (req, res) => {
   const { ticket_id, quantity, booking_date } = req.body;
 
@@ -123,7 +123,6 @@ app.post("/api/bookings", (req, res) => {
     return res.status(400).json({ error: "Thiếu thông tin đặt vé" });
   }
 
-  // Lấy user_id từ cookie
   const authCookie = req.cookies.auth;
   if (!authCookie) {
     return res.status(401).json({ error: "Chưa đăng nhập" });
@@ -140,7 +139,6 @@ app.post("/api/bookings", (req, res) => {
   const booking_id = `booking_${Date.now()}`;
   const status = 'confirmed'; 
 
-  // lưu booking với user_id
   db.query(
     "INSERT INTO bookings (booking_id, ticket_id, booking_date, quantity, status, user_id) VALUES (?, ?, ?, ?, ?, ?)",
     [booking_id, ticket_id, booking_date, quantity, status, userId],
@@ -395,22 +393,19 @@ app.post('/api/logout', (req, res) => {
 
 
 
-// API xóa sự kiện theo event_id
+// API xóa sự kiện theo event id
 app.delete('/api/events/:eventId', (req, res) => {
   const eventId = req.params.eventId;
 
-  // Trước khi xóa sự kiện, cần xóa các vé liên quan để tránh lỗi ràng buộc khóa ngoại
   const deleteTicketsQuery = 'DELETE FROM tickets WHERE event_id = ?';
   const deleteEventQuery = 'DELETE FROM events WHERE event_id = ?';
 
-  // Bắt đầu từ việc xóa vé trước
   db.query(deleteTicketsQuery, [eventId], (ticketErr, ticketResult) => {
     if (ticketErr) {
       console.error('Lỗi khi xóa vé:', ticketErr);
       return res.status(500).json({ error: 'Lỗi khi xóa vé liên quan' });
     }
 
-    // Sau đó xóa sự kiện
     db.query(deleteEventQuery, [eventId], (eventErr, eventResult) => {
       if (eventErr) {
         console.error('Lỗi khi xóa sự kiện:', eventErr);
