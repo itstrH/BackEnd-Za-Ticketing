@@ -393,4 +393,39 @@ app.post('/api/logout', (req, res) => {
 
 
 
+
+
+// API xóa sự kiện theo event_id
+app.delete('/api/events/:eventId', (req, res) => {
+  const eventId = req.params.eventId;
+
+  // Trước khi xóa sự kiện, cần xóa các vé liên quan để tránh lỗi ràng buộc khóa ngoại
+  const deleteTicketsQuery = 'DELETE FROM tickets WHERE event_id = ?';
+  const deleteEventQuery = 'DELETE FROM events WHERE event_id = ?';
+
+  // Bắt đầu từ việc xóa vé trước
+  db.query(deleteTicketsQuery, [eventId], (ticketErr, ticketResult) => {
+    if (ticketErr) {
+      console.error('Lỗi khi xóa vé:', ticketErr);
+      return res.status(500).json({ error: 'Lỗi khi xóa vé liên quan' });
+    }
+
+    // Sau đó xóa sự kiện
+    db.query(deleteEventQuery, [eventId], (eventErr, eventResult) => {
+      if (eventErr) {
+        console.error('Lỗi khi xóa sự kiện:', eventErr);
+        return res.status(500).json({ error: 'Lỗi khi xóa sự kiện' });
+      }
+
+      if (eventResult.affectedRows === 0) {
+        return res.status(404).json({ error: 'Không tìm thấy sự kiện' });
+      }
+
+      res.json({ message: 'Xóa sự kiện thành công' });
+    });
+  });
+});
+
+
+
 // json api event: http://localhost:3001/api/events - muon tim api nao thi doi duoi
