@@ -310,17 +310,27 @@ app.post('/api/register', (req, res) => {
     return res.status(400).json({ error: "Thiếu thông tin" });
   }
 
-  db.query(
-    'INSERT INTO users (full_name, phone, email, password, gender, dob, role) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    [full_name, phone, email, password, gender, dob, role],
-    (err) => {
-      if (err) {
-        console.error('Lỗi đăng ký:', err);
+  const checkQuery = 'SELECT * FROM users WHERE email = ? OR full_name = ?';
+  db.query(checkQuery, [email, full_name], (checkErr, results) => {
+    if (checkErr) {
+      console.error('Lỗi kiểm tra:', checkErr);
+      return res.status(500).json({ error: "Lỗi kiểm tra" });
+    }
+
+    if (results.length > 0) {
+      return res.status(409).json({ error: "Email hoặc tên người dùng đã tồn tại" });
+    }
+
+    const insertQuery = 'INSERT INTO users (full_name, phone, email, password, gender, dob, role) VALUES (?, ?, ?, ?, ?, ?, ?)';
+    db.query(insertQuery, [full_name, phone, email, password, gender, dob, role], (insertErr) => {
+      if (insertErr) {
+        console.error('Lỗi đăng ký:', insertErr);
         return res.status(500).json({ error: "Không thể đăng ký" });
       }
+
       res.status(201).json({ message: "Đăng ký thành công" });
-    }
-  );
+    });
+  });
 });
 
 
