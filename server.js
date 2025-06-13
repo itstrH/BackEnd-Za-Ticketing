@@ -90,7 +90,7 @@ app.get('/api/tickets', (req, res) => {
   const eventId = req.query.eventId;
 
   if (!eventId) {
-    return res.status(400).json({ error: "Thiếu eventId" });
+    return res.status(400).json({ error: "No event ID" });
   }
 
   const sql = `
@@ -105,8 +105,8 @@ app.get('/api/tickets', (req, res) => {
 
   db.query(sql, [eventId], (err, results) => {
     if (err) {
-      console.error("Lỗi khi lấy vé:", err);
-      return res.status(500).json({ error: "Lỗi máy chủ" });
+      console.error("Loi lay info ve", err);
+      return res.status(500).json({ error: "Server error" });
     }
 
     res.json(results);
@@ -120,7 +120,7 @@ app.post("/api/bookings", (req, res) => {
   const { ticket_id, quantity, booking_date } = req.body;
 
   if (!ticket_id || !quantity || !booking_date) {
-    return res.status(400).json({ error: "Thiếu thông tin đặt vé" });
+    return res.status(400).json({ error: "Thiếu thông tin để đặt vé" });
   }
 
   const authCookie = req.cookies.auth;
